@@ -16,6 +16,10 @@
 #      /_/      \_\
 # -----------------------------------------------
 
+
+
+# Formatted for INS Sailing Price Changes
+
 import openpyxl
 
 def update_pricing():
