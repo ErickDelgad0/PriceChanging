@@ -94,8 +94,141 @@ def ArgConfirmation(ArgInfo):
         new_value = input(f"New {phrases[value]}")
         ArgInfo[value] = new_value
         ArgConfirmation(ArgInfo)
-    
-def R_Class_Price_Changes(ArgInfo):
+
+def Class_Execution(Ship, Info):
+    R_class = ["INS", "NAU", "REG", "SIR"]
+    O_class = ["MNA", "RVA"]
+    A_class = ["VIS"]
+    if Ship in R_class:
+        return R_Class_Change(Info)
+    elif Ship in O_class:
+        return O_Class_Change(Info)
+    elif Ship in A_class:
+        return A_Class_Change(Info)
+    else:
+        print("Ship not found in classes")
+        return
+
+
+def R_Class_Change(Info):
+    column, price_changes_sheet, pricing_grids_sheet, pricing_grids_column, end_date, pricing_date = Info[:6]
+
+    # store pricing values
+    AI_values = []
+    row_start = 182
+    row_end = 197
+
+    for row in range(row_start, row_end + 1):
+        AI_values.append(price_changes_sheet.cell(row=row, column=column).value)
+
+    AI_OS, AI_VS, AI_PH1, AI_PH2, AI_PH3, AI_A1, AI_A2, AI_A3, AI_B1, AI_B2, AI_C1, AI_C2, AI_D, AI_S, AI_F, AI_G = AI_values[:16]
+
+    # Check the type in Price Changes row 85
+    pricing_type = price_changes_sheet.cell(row=85, column=column).value
+
+    # Check the Air Credit Action
+    AirCreditAction = price_changes_sheet.cell(row=16, column=column).value
+
+    # Current Tier
+    current_tier = pricing_grids_sheet.cell(row=65, column=pricing_grids_column).value
+
+    # If type is "N", extend the end date in Pricing Grids based on the tier
+    if pricing_type == "N" and AirCreditAction == "FLAT":
+        try:
+            row_number = 132 + (current_tier - 1) * 42
+
+            # Extending end date only
+            pricing_grids_sheet.cell(row=row_number-1, column=pricing_grids_column).value = end_date
+            
+        except:
+            print(f"Current Column {column} was unable to process...")
+
+    # If type is "F" or "P", update prices in Pricing Grids for the respective tier
+    elif pricing_type in ("F", "P"):
+        try:
+            row_number = (132 + (current_tier-1) * 42) + 42
+
+            # Discounts, dates, and pricing applied
+            values = [
+                0, pricing_date, end_date,
+                AI_OS, AI_VS, AI_PH1,
+                AI_PH2, AI_PH3, AI_A1,
+                AI_A2, AI_A3, AI_B1,
+                AI_B2, AI_C1, AI_C2,
+                AI_D, AI_S, AI_F, AI_G
+            ]
+
+            for i, value in enumerate(values):
+                pricing_grids_sheet.cell(row=row_number + i, column=pricing_grids_column).value = value
+
+            # Increase the tier of price by 1
+            pricing_grids_sheet.cell(row=65, column=pricing_grids_column).value = current_tier + 1
+
+        except:
+            print(f"Current Column {column} was unable to process...")
+
+def O_Class_Change(Info):
+    column, price_changes_sheet, pricing_grids_sheet, pricing_grids_column, end_date, pricing_date = Info[:6]
+
+    # store pricing values
+    AI_values = []
+    row_start = 190
+    row_end = 206
+
+    for row in range(row_start, row_end + 1):
+        AI_values.append(price_changes_sheet.cell(row=row, column=column).value)
+
+    AI_OS, AI_VS, AI_OC, AI_PH1, AI_PH2, AI_PH3, AI_A1, AI_A2, AI_A3, AI_A4, AI_B1, AI_B2, AI_B3, AI_B4, AI_C, AI_F, AI_G = AI_values[:17]
+
+    # Check the type in Price Changes row 85
+    pricing_type = price_changes_sheet.cell(row=88, column=column).value
+
+    # Check the Air Credit Action
+    AirCreditAction = price_changes_sheet.cell(row=16, column=column).value
+
+    # Current Tier
+    current_tier = pricing_grids_sheet.cell(row=66, column=pricing_grids_column).value
+
+    # If type is "N", extend the end date in Pricing Grids based on the tier
+    if pricing_type == "N" and AirCreditAction == "FLAT":
+        try:
+            row_number = 136 + (current_tier - 1) * 44
+
+            # Extending end date only
+            pricing_grids_sheet.cell(row=row_number-1, column=pricing_grids_column).value = end_date
+            
+        except:
+            print(f"Current Column {column} was unable to process...")
+
+    # If type is "F" or "P", update prices in Pricing Grids for the respective tier
+    elif pricing_type in ("F", "P"):
+        try:  
+            row_number = (136 + (current_tier - 1) * 44) + 44
+
+            # Discounts, dates, and pricing applied
+            values = [
+                0, pricing_date, end_date,
+                AI_OS, AI_VS, AI_OC,
+                AI_PH1, AI_PH2, AI_PH3,
+                AI_A1, AI_A2, AI_A3,
+                AI_A4, AI_B1, AI_B2,
+                AI_B3, AI_B4, AI_C,
+                AI_F, AI_G
+            ]
+
+            for i, value in enumerate(values):
+                pricing_grids_sheet.cell(row=row_number + i, column=pricing_grids_column).value = value
+
+            # Increase the tier of price by 1
+            pricing_grids_sheet.cell(row=66, column=pricing_grids_column).value = current_tier + 1
+
+        except:
+            print(f"Current Column {column} was unable to process...")
+
+def A_Class_Change(Info):
+
+
+def Price_Changes(ArgInfo):
     PriceGridFile = ArgInfo[0]
     PriceChangeFile = ArgInfo[1]
     Ship = ArgInfo[2]
@@ -154,81 +287,17 @@ def R_Class_Price_Changes(ArgInfo):
 
     # Update prices and dates for the remaining cruises
     for column in range(cruise_column, price_changes_sheet.max_column + 1):
+        Info = [column, price_changes_sheet, pricing_grids_sheet, pricing_grids_column, end_date, pricing_date]
+        
         # Get NEW AC IN and NEW AC OUT values
         new_ac_in = price_changes_sheet.cell(row=14, column=column).value
         new_ac_out = price_changes_sheet.cell(row=15, column=column).value
-
-        # Get the new all inclusive prices changes
-        AI_OS = price_changes_sheet.cell(row=182, column=column).value
-        AI_VS = price_changes_sheet.cell(row=183, column=column).value
-        AI_PH1 = price_changes_sheet.cell(row=184, column=column).value
-        AI_PH2 = price_changes_sheet.cell(row=185, column=column).value
-        AI_PH3 = price_changes_sheet.cell(row=186, column=column).value
-        AI_A1 = price_changes_sheet.cell(row=187, column=column).value
-        AI_A2 = price_changes_sheet.cell(row=188, column=column).value
-        AI_A3 = price_changes_sheet.cell(row=189, column=column).value
-        AI_B1 = price_changes_sheet.cell(row=190, column=column).value
-        AI_B2 = price_changes_sheet.cell(row=191, column=column).value
-        AI_C1 = price_changes_sheet.cell(row=192, column=column).value
-        AI_C2 = price_changes_sheet.cell(row=193, column=column).value
-        AI_D = price_changes_sheet.cell(row=194, column=column).value
-        AI_S = price_changes_sheet.cell(row=195, column=column).value
-        AI_F = price_changes_sheet.cell(row=196, column=column).value
-        AI_G = price_changes_sheet.cell(row=197, column=column).value
 
         # Update NEW AC IN and NEW AC OUT in Pricing Grids (shifted one cell/row upwards)
         pricing_grids_sheet.cell(row=18, column=pricing_grids_column).value = new_ac_in
         pricing_grids_sheet.cell(row=19, column=pricing_grids_column).value = new_ac_out
 
-        # Check the type in Price Changes row 85
-        pricing_type = price_changes_sheet.cell(row=85, column=column).value
-
-        # If type is "N", extend the end date in Pricing Grids based on the tier
-        if pricing_type == "N":
-            try:
-                current_tier = pricing_grids_sheet.cell(row=65, column=pricing_grids_column).value
-                row_number = 132 + (current_tier - 1) * 42
-
-                # Extending end date only
-                pricing_grids_sheet.cell(row=row_number-1, column=pricing_grids_column).value = end_date
-                
-            except:
-                print(f"Current Column {column} was unable to process...")
-
-        # If type is "F" or "P", update prices in Pricing Grids for the respective tier
-        elif pricing_type in ("F", "P"):
-            try:  
-                current_tier = pricing_grids_sheet.cell(row=65, column=pricing_grids_column).value
-                row_number = (132 + (current_tier-1) * 42) + 42
-
-                # Discounts and dates applied
-                pricing_grids_sheet.cell(row=row_number-3, column=pricing_grids_column).value = 0
-                pricing_grids_sheet.cell(row=row_number-2, column=pricing_grids_column).value = pricing_date
-                pricing_grids_sheet.cell(row=row_number-1, column=pricing_grids_column).value = end_date
-
-                # New Pricing applied
-                pricing_grids_sheet.cell(row=row_number+1, column=pricing_grids_column).value = AI_OS
-                pricing_grids_sheet.cell(row=row_number+2, column=pricing_grids_column).value = AI_VS
-                pricing_grids_sheet.cell(row=row_number+3, column=pricing_grids_column).value = AI_PH1
-                pricing_grids_sheet.cell(row=row_number+4, column=pricing_grids_column).value = AI_PH2
-                pricing_grids_sheet.cell(row=row_number+5, column=pricing_grids_column).value = AI_PH3
-                pricing_grids_sheet.cell(row=row_number+6, column=pricing_grids_column).value = AI_A1
-                pricing_grids_sheet.cell(row=row_number+7, column=pricing_grids_column).value = AI_A2
-                pricing_grids_sheet.cell(row=row_number+8, column=pricing_grids_column).value = AI_A3
-                pricing_grids_sheet.cell(row=row_number+9, column=pricing_grids_column).value = AI_B1
-                pricing_grids_sheet.cell(row=row_number+10, column=pricing_grids_column).value = AI_B2
-                pricing_grids_sheet.cell(row=row_number+11, column=pricing_grids_column).value = AI_C1
-                pricing_grids_sheet.cell(row=row_number+12, column=pricing_grids_column).value = AI_C2
-                pricing_grids_sheet.cell(row=row_number+13, column=pricing_grids_column).value = AI_D
-                pricing_grids_sheet.cell(row=row_number+14, column=pricing_grids_column).value = AI_S
-                pricing_grids_sheet.cell(row=row_number+15, column=pricing_grids_column).value = AI_F
-                pricing_grids_sheet.cell(row=row_number+16, column=pricing_grids_column).value = AI_G
-
-                # Increase the tier of price by 1
-                pricing_grids_sheet.cell(row=65, column=pricing_grids_column).value = current_tier + 1
-
-            except:
-                print(f"Current Column {column} was unable to process...")
+        Class_Execution(Ship, Info)
 
         # Move to the next column in Price Changes and Pricing Grids
         cruise_column += 1
@@ -245,7 +314,7 @@ def main():
     # Standard user input
     Arg_Info = ArgSelector()
     Arg_Info = ArgConfirmation(Arg_Info)
-    R_Class_Price_Changes(Arg_Info)
+    Price_Changes(Arg_Info)
 
 if __name__ == "__main__":
     main()
